@@ -13,7 +13,7 @@ type User struct {
 	Pwd string `orm:"size(100)"`			   //密码
 	Email string							   //邮箱
 	Power int  `orm:"default(0)"` //0标识普通用户  1标识管理员用户  用户权限
-	Active int `orm:"default(0)"` //0标识未激活，1标识激活    是否激活
+	Active int `orm:"default(0)"` //0标识未激活，1标识激活    是否激活 邮箱激活
 
 	Receivers []*Receiver `orm:"reverse(many)"`
 }
