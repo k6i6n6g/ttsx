@@ -24,6 +24,8 @@ func init() {
     beego.Router("/goods/usercenterorder", &controllers.UserController{},"get:ShowUserCenterOrder")
     //收货地址
     beego.Router("/goods/usercentersite", &controllers.UserController{},"get:ShowUserCenterSite")
+    //用户添加系统地址
+    beego.Router("/goods/addSite", &controllers.UserController{},"post:HandleAddSite")
 
 }
 func filterFunc(ctx *context.Context){
