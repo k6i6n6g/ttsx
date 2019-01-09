@@ -5,12 +5,13 @@ import (
 	"github.com/astaxie/beego/orm"
 	"ttsx/ttsx/models"
 	"github.com/gomodule/redigo/redis"
+	"math"
 )
 
 type GoodsController struct {
 	beego.Controller
 }
-
+//展示首页
 func (this *GoodsController)ShowIndex()  {
 	userName:=this.GetSession("userName")
 	if userName ==nil{
@@ -63,7 +64,7 @@ func (this *GoodsController)ShowIndex()  {
 
 	this.TplName="index.html"
 }
-
+//显示商品详情页
 func(this * GoodsController)ShowDetail(){
 	goodsId,err:=this.GetInt("goodsId")
 	if err!=nil{
@@ -103,4 +104,62 @@ func(this * GoodsController)ShowDetail(){
 
 	this.TplName="detail.html"
 
+}
+//包装分页函数
+func pageEditor(pageCount int,pageIndex int)[]int  {
+	var pages []int
+	if pageCount<5{
+		pages=make([]int,pageCount)
+		for i:=1;i<pageCount;i++{
+			pages[i-1]=i
+		}
+	}else if pageIndex<=3{
+		pages=make([]int,5)
+		for i:=1;i<=5;i++{
+			pages[i-1]=i
+		}
+	}else if pageIndex>pageCount-2{
+		pages=make([]int,5)
+		for i:=1;i<=5;i++{
+			pages[i-1]=pageCount-5+i
+		}
+	}else{
+		pages=make([]int,5)
+		for i:=1;i<5;i++{
+			pages[i-1]=pageIndex-3+i
+		}
+	}
+	return pages
+	}
+//展示商品列表
+func (this *GoodsController )ShowList(){
+	typeId,err:=this.GetInt("typeId")
+	if err !=nil{
+		beego.Error("商品ID为获取到",err)
+		this.TplName="list.html"
+		return
+	}
+	o:=orm.NewOrm()
+	var  goods []models.GoodsSKU
+	qs:=o.QueryTable("GoodsSKU").RelatedSel("GoodsType").Filter("GoodsType__Id",typeId)
+    qs.All(&goods)
+	//获取总记录数
+	count,err:=qs.Count()
+	if err!=nil{
+		beego.Error("计数错误")
+		return
+	}
+	//每页有多少条
+	pageSize:=1
+	//获取总页码数
+	pageCount:=math.Ceil(float64(count)/float64(pageSize))
+	//获取当前页码数
+	pageIndex,err:=this.GetInt("pageIndex")
+	if err!=nil {
+		pageIndex=5
+	}
+	pages:=pageEditor(int(pageCount),pageIndex)
+	this.Data["pages"]=pages
+  	this.Layout="layout.html"
+	this.TplName="list.html"
 }

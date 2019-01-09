@@ -7,6 +7,7 @@ import (
 )
 
 func init() {
+	//登陆过滤
 	beego.InsertFilter("/goods/*",beego.BeforeExec,filterFunc)
 	//首页
     beego.Router("/", &controllers.GoodsController{},"get:ShowIndex")
@@ -28,8 +29,11 @@ func init() {
     beego.Router("/goods/addSite", &controllers.UserController{},"post:HandleAddSite")
     //商品详情
     beego.Router("/detail",&controllers.GoodsController{},"get:ShowDetail")
+   //商品用表
+    beego.Router("/list",&controllers.GoodsController{},"get:ShowList")
 
 }
+
 func filterFunc(ctx *context.Context){
 	userName:=ctx.Input.Session("userName")
 	if userName ==nil{
