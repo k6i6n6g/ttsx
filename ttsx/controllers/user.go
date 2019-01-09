@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"github.com/astaxie/beego/utils"
 	"strconv"
+	"github.com/gomodule/redigo/redis"
 )
 
 type UserController struct {
@@ -60,15 +61,15 @@ func (this *UserController)HandleRegister(){
 	}
 	//this.Redirect("/login",30
 	//注册成功时侯发送激活邮件  发送的邮箱                  邮箱的密钥                  服务器地址      端口属性
-  config:=`{"username":"858744867@qq.com","password":"mthtelphapjvbejj","host":"smtp.qq.com","port":587}`
-  //邮箱对象  邮件管理器
+  config:=`{"username":"1825376253@qq.com","password":"chaifjkpkehhejia","host":"smtp.qq.com","port":587}`
+  //邮箱对象   邮件管理器
   emailSend:=utils.NewEMail(config)
-  emailSend.From="858744867@qq.com"
+  emailSend.From="1825376253@qq.com"
   emailSend.To=[]string{email}
   //题目
   emailSend.Subject="天天生鲜用户激活"
   //内容     发了一个链接
-  emailSend.HTML=`<a href="http://192.168.109.137:8000/active?userId=`+strconv.Itoa(user.Id)+`">点击激活</a>`
+  emailSend.HTML=`<a href="http://192.168.109.138:8000/active?userId=`+strconv.Itoa(user.Id)+`">点击激活</a>`
   //发送
   err=emailSend.Send()
 
@@ -181,16 +182,62 @@ func (this *UserController) ShowUserCenterInfo(){
 //获取当前用户的默认联系方式和默认地址
 	o:=orm.NewOrm()
 	var receiver models.Receiver
-	//查询默认地址
+	//查询默认用户名
 	userName:=this.GetSession("userName")
 	qs:=o.QueryTable("Receiver").RelatedSel("User").Filter("User__UserName",userName.(string))
-	//获取默认的地址
+
+	//获取默认的用户名
 	qs.Filter("IsDefault",true).One(&receiver)
+
+	//获取用户历史浏览记录
+	//redis 和获取数据
+	conn,err:=redis.Dial("tcp","192.168.109.138:6379")
+	if err!= nil{
+		beego.Error("redis链接错误")
+		return
+	}
+	defer conn.Close()
+	resp,err:=conn.Do("lrange","history_"+userName.(string),0,4)
+	//回复助手函数
+	res,err:=redis.Ints(resp,err)
+	var goods []models.GoodsSKU
+	for _,goodsId:=range res{
+		var goodsSku models.GoodsSKU
+		goodsSku.Id=goodsId
+		o.Read(&goodsSku)
+		goods=append(goods,goodsSku)
+	}
+	this.Data["goods"]=goods
+
+
 	this.Data["receiver"]=receiver
 
 	this.Layout="layout.html"
 	this.TplName="user_center_info.html"
 }
+
+
+
+//当前的用户名字叫 张三    "zhangsan"=GetSession("userName")
+//张三有5个收获地址
+//1.  o.QueryTable("Receiver")     我们要根据名字来找地址， 所以最终指向的是Receiver
+//2.  但是我们要根据用户名来查找，所以我们要关联User表，，，，，所以我们 RelatedSel("User")
+//3.  每个人都有好几个地址，张三有5个，李四有8个，所以，要根据用户名来筛选,我们要筛选出当前用户的地址  当前是张三
+//3.  所以我们执行  Filter("User__UserName",userName.(string))
+//4.  如果现在我们要所有的张三的地址，那么就 All
+
+//var receivers []models.Receiver
+//.All(&receivers)
+
+//qs.Filter（“IsDefault”,true）
+//select receiver where IsDefault == true
+
+//select user where  User__UserName == userName.(string);
+//select user where name ='zhangsan' ;
+//select user where age = 20 ;
+
+
+
 //展示用户中心订单
 func(this *UserController)ShowUserCenterOrder(){
 	GetUser(this)
@@ -205,9 +252,12 @@ func(this *UserController)ShowUserCenterSite(){
     //获取信息  获取当前用户的默认地址信息
 	o:=orm.NewOrm()
 	var receiver models.Receiver
-	//获取当前用户所有收件人
+	//获取当前用户所有收件人   querytable是指定的的最终目标       这个是和什么关联     筛选  指定的是user表中的username
 	qs:=o.QueryTable("Receiver").RelatedSel("User").Filter("User__UserName",userName.(string))
+	//筛选  默认的，在下面设置的最新的一条为默认的     装到receiver中去传值
 	qs.Filter("IsDefault",true).One(&receiver)
+	//注释上面的qs.Filter("Id",2).One(&receiver)
+
 	//传递给前段
 	this.Data["receiver"]=receiver
 
@@ -244,9 +294,9 @@ func(this *UserController)HandleAddSite(){
 	o.Read(&user,"UserName")
 	receiver.User=&user
 
-	//每次插入的地址为默认地址，
+	///每次插入的地址为默认地址
 	var oldReceiver models.Receiver
-	//每次当前用户是否有默认地址，查询当前用户的所有收件人的地址
+	//每次当前用户是否有默认地址，查询当前用户的所有收件人的地址                           条件 字段    是根据user.id找
 	qs:=o.QueryTable("Receiver").RelatedSel("User").Filter("User__Id",user.Id)
 	//查询是否有默认地址
 	err:=qs.Filter("IsDefault",true).One(&oldReceiver)
@@ -255,6 +305,7 @@ func(this *UserController)HandleAddSite(){
 		oldReceiver.IsDefault=false
 		o.Update(&oldReceiver)
 	}
+	//把最新的地址设置成默认地址
 	receiver.IsDefault=true
 	o.Insert(&receiver)
 	this.Redirect("/goods/usercentersite",302)

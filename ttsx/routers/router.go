@@ -26,6 +26,8 @@ func init() {
     beego.Router("/goods/usercentersite", &controllers.UserController{},"get:ShowUserCenterSite")
     //用户添加系统地址
     beego.Router("/goods/addSite", &controllers.UserController{},"post:HandleAddSite")
+    //商品详情
+    beego.Router("/detail",&controllers.GoodsController{},"get:ShowDetail")
 
 }
 func filterFunc(ctx *context.Context){
