@@ -197,6 +197,7 @@ func (this *UserController) ShowUserCenterInfo(){
 		return
 	}
 	defer conn.Close()
+	//                           遍历                                  开始 结束
 	resp,err:=conn.Do("lrange","history_"+userName.(string),0,4)
 	//回复助手函数
 	res,err:=redis.Ints(resp,err)

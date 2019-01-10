@@ -6,6 +6,7 @@ import (
 	"ttsx/ttsx/models"
 	"github.com/gomodule/redigo/redis"
 	"math"
+
 )
 
 type GoodsController struct {
@@ -21,22 +22,24 @@ func (this *GoodsController)ShowIndex()  {
 	}
 	//获取首页内容
 	o:=orm.NewOrm()
-	//
+	//获取商品类型
+	//定义一个容器
 	var goodsTypes []models.GoodsType
 	o.QueryTable("goodsType").All(&goodsTypes)
 	this.Data["goodsTypes"]=goodsTypes
-    //
+    //获取论波图
 	var goodslunbo []models.IndexGoodsBanner
 	o.QueryTable("IndexGoodsBanner").OrderBy("Index").All(&goodslunbo)
 	this.Data["goodslunbo"]=goodslunbo
-    //
-	var goodsPro []models.IndexPromotionBanner
+    //获取促销商品
+    var goodsPro []models.IndexPromotionBanner
 	o.QueryTable("IndexPromotionBanner").OrderBy("Index").All(&goodsPro)
 	this.Data["goodsPro"]=goodsPro
 
-
+     //interface中有各种类型{goodstype,goodssku)  在通过键值对来查找 所以要用map    键是string类型    又有很多map所以就用切片来装
 	var goods []map[string]interface{}
 	//把所有商品类型插入到大容器中
+	//遍历商品类型
 	for _,v:=range goodsTypes{
 		temp:=make(map[string]interface{})
 		temp["goodsType"]=v
@@ -49,6 +52,7 @@ func (this *GoodsController)ShowIndex()  {
      	qs:=o.QueryTable("IndexTypeGoodsBanner").RelatedSel("GoodsSKU","GoodsType").Filter("GoodsType",v["goodsType"])
      	//需要把商品放到map中
      	var goodsText []models.IndexTypeGoodsBanner
+     	//          建表时设置的 0和1
      	qs.Filter("DisplayType",0).OrderBy("Index").All(&goodsText)
      	//获取图片商品
      	var goodsImage []models.IndexTypeGoodsBanner
@@ -105,25 +109,29 @@ func(this * GoodsController)ShowDetail(){
 	this.TplName="detail.html"
 
 }
-//包装分页函数
+//包装分页函数  始终为中间为准
 func pageEditor(pageCount int,pageIndex int)[]int  {
 	var pages []int
+	//当页书小于5时，就直接显示完
 	if pageCount<5{
 		pages=make([]int,pageCount)
 		for i:=1;i<pageCount;i++{
 			pages[i-1]=i
 		}
+	//开始页码数小于3
 	}else if pageIndex<=3{
 		pages=make([]int,5)
 		for i:=1;i<=5;i++{
 			pages[i-1]=i
 		}
+		//结尾接近最后两个时
 	}else if pageIndex>pageCount-2{
 		pages=make([]int,5)
 		for i:=1;i<=5;i++{
 			pages[i-1]=pageCount-5+i
 		}
 	}else{
+		//在中间时候的情况
 		pages=make([]int,5)
 		for i:=1;i<5;i++{
 			pages[i-1]=pageIndex-3+i
@@ -133,6 +141,7 @@ func pageEditor(pageCount int,pageIndex int)[]int  {
 	}
 //展示商品列表
 func (this *GoodsController )ShowList(){
+	//获取类型Id
 	typeId,err:=this.GetInt("typeId")
 	if err !=nil{
 		beego.Error("商品ID为获取到",err)
@@ -140,7 +149,9 @@ func (this *GoodsController )ShowList(){
 		return
 	}
 	o:=orm.NewOrm()
+	//定一个容器           商品详情
 	var  goods []models.GoodsSKU
+	//                                                                                    通过Id来对比    通过value来确定第一个怎么写
 	qs:=o.QueryTable("GoodsSKU").RelatedSel("GoodsType").Filter("GoodsType__Id",typeId)
     qs.All(&goods)
 	//获取总记录数
@@ -150,16 +161,58 @@ func (this *GoodsController )ShowList(){
 		return
 	}
 	//每页有多少条
-	pageSize:=1
-	//获取总页码数
+	pageSize:=4
+	//获取总页码数        总页书                 每页多少
 	pageCount:=math.Ceil(float64(count)/float64(pageSize))
 	//获取当前页码数
 	pageIndex,err:=this.GetInt("pageIndex")
 	if err!=nil {
-		pageIndex=5
+		pageIndex=1
 	}
+	//上面的分装函数    pages 为显示的页书
 	pages:=pageEditor(int(pageCount),pageIndex)
+	//传递个后台数据 页码数
 	this.Data["pages"]=pages
+	start:=(pageIndex-1)*pageSize
+	//排序
+	sort:=this.GetString("sort")
+	if sort==""{
+		//默认排序
+		qs.Limit(pageSize,start).All(&goods)
+		this.Data["sort"]=""
+	}else if sort=="price"{
+		qs.OrderBy("Price").Limit(pageSize,start).All(&goods)
+		this.Data["sort"]="price"
+	}else{
+		qs.OrderBy("Sales").Limit(pageSize,start).All((&goods))
+		this.Data["sort"]="sale"
+	}
+	//实现页码显示 上一页 下一页
+	var preIndex,nextIndex int
+	if pageIndex==1{
+		//不要跳出小于1
+		preIndex=1
+	}else {
+		//上一页
+		preIndex=pageIndex-1
+	}
+	if pageIndex ==int(pageCount){
+		//不要一直跳上去
+		nextIndex=int(pageCount)
+	}else{
+		//下一页
+		nextIndex=pageIndex+1
+	}
+	this.Data["preIndex"]=preIndex
+	this.Data["nextIndex"]=nextIndex
+//select * from user where goodsType__id=8
+
+	//传递页书
+	this.Data["pageIndex"]=pageIndex
+	//获取类型ID
+	this.Data["typeId"]=typeId
+	this.Data["pages"]=pages
+	this.Data["goods"]=goods
   	this.Layout="layout.html"
 	this.TplName="list.html"
 }

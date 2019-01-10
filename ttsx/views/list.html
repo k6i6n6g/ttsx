@@ -5,12 +5,12 @@
 				<h1>全部商品分类</h1>	
 				<span></span>			
 				<ul class="subnav">
-					<li><a href="/list" class="fruit">新鲜水果</a></li>
-					<li><a href="/list" class="seafood">海鲜水产</a></li>
-					<li><a href="/list" class="meet">猪牛羊肉</a></li>
-					<li><a href="/list" class="egg">禽类蛋品</a></li>
-					<li><a href="/list" class="vegetables">新鲜蔬菜</a></li>
-					<li><a href="/list" class="ice">速冻食品</a></li>
+					<li><a href="/list?typeId={{.typeId}}" class="fruit">新鲜水果</a></li>
+					<li><a href="/list?typeId={{.typeId}}" class="seafood">海鲜水产</a></li>
+					<li><a href="/list?typeId={{.typeId}}" class="meet">猪牛羊肉</a></li>
+					<li><a href="/list?typeId={{.typeId}}" class="egg">禽类蛋品</a></li>
+					<li><a href="/list?typeId={{.typeId}}" class="vegetables">新鲜蔬菜</a></li>
+					<li><a href="/list?typeId={{.typeId}}" class="ice">速冻食品</a></li>
 				</ul>
 			</div>
 			<ul class="navlist fl">
@@ -50,9 +50,9 @@
 
 		<div class="r_wrap fr clearfix">
 			<div class="sort_bar">
-				<a href="#" class="active">默认</a>
-				<a href="#">价格</a>
-				<a href="#">人气</a>
+				<a href="/list?typeId={{.typeId}}" class="active">默认</a>
+				<a href="/list?typeId={{.typeId}}&sort=price">价格</a>
+				<a href="/list?typeId={{.typeId}}&sort=sale">人气</a>
 			</div>
 
 			<ul class="goods_type_list clearfix">
@@ -70,11 +70,11 @@
 			</ul>
 
 			<div class="pagenation">
-				<a href="#">上一页</a>
+				<a href="/list?pageIndex={{.preIndex}}&typeId={{.typeId}}&sort={{.sort}}">上一页</a>
 				{{range $key,$value:=.pages}}
-					<a href="#" class="active">{{$value}}</a>
+					<a href="/list?pageIndex={{$value}}&typeId={{$.typeId}}&sort={{$.sort}}"{{if compare  $.pageIndex $value}} class="active"{{end}}>{{$value}}</a>
 				{{end}}
-				<a href="#">下一页</a>
+				<a href="/list?pageIndex={{.nextIndex}}&typeId={{.typeId}}&sort={{.sort}}">下一页</a>
 			</div>
 		</div>
 	</div>

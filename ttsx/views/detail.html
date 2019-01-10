@@ -74,7 +74,7 @@
 	</div>
 
 	<div class="goods_detail_con clearfix">
-		<div class="goods_detail_pic fl"><img src="http://192.168.109.138:8888/{{.goodsSku.Image}}"></div>
+		<div class="goods_detail_pic fl">{{range  .goodsImage}}<img src="http://192.168.109.138:8888/{{.goodsSku.Image}}">{{end}}</div>
 
 		<div class="goods_detail_list fr">
 			<h3>{{.goodsSku.Name}}</h3>
