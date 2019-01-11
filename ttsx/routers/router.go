@@ -33,6 +33,8 @@ func init() {
     beego.Router("/list",&controllers.GoodsController{},"get:ShowList")
     //购物车
     beego.Router("/goods/addcart",&controllers.CartController{},"post:HandleAddCart;get:ShowAddCart")
+    //搜索
+    beego.Router("/search",&controllers.GoodsController{},"post:HandleSearch")
 
 }
 

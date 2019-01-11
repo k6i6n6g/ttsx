@@ -181,7 +181,7 @@ func (this *GoodsController )ShowList(){
 	}
 	//上面的分装函数    pages 为显示的页书
 	pages:=pageEditor(int(pageCount),pageIndex)
-	//传递个前段数据 页码数
+	//传递个前段数据 页码数      //包装函数为显示 1 2 3 4 5
 	this.Data["pages"]=pages
 
 	start:=(pageIndex-1)*pageSize
@@ -225,10 +225,34 @@ func (this *GoodsController )ShowList(){
 	this.Data["pageIndex"]=pageIndex
 	//获取类型ID
 	this.Data["typeId"]=typeId
-	//包装函数为显示 1 2 3 4 5
+
+	//传递头框上面的用户姓名的
 	userName:=this.GetSession("userName")
 	this.Data["userName"]=userName
+
 	this.Data["goods"]=goods
   	this.Layout="layout.html"
 	this.TplName="list.html"
+}
+//商品的搜索
+func (this*GoodsController)HandleSearch(){
+	//获取数据
+	searchName:=this.GetString("searchName")
+	//判断
+	if searchName==""{
+		this.Redirect("/",302)
+		return
+	}
+	//处理数据
+	o:=orm.NewOrm()
+	var goods []models.GoodsSKU
+	o.QueryTable("GoodsSKU").Filter("Name__contains",searchName).All(&goods)
+	//发送数据
+	this.Data["goods"]=goods
+	//传递头框上面的用户姓名的
+	userName:=this.GetSession("userName")
+	this.Data["userName"]=userName
+
+	this.Layout="layout.html"
+	this.TplName="search.html"
 }
