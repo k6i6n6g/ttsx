@@ -65,24 +65,29 @@ func (this *GoodsController)ShowIndex()  {
      //把整个大容器都传给前段
 	this.Data["goods"]=goods
 
-
+	//this.Data["userName"]=userName
 	this.TplName="index.html"
 }
 //显示商品详情页
 func(this * GoodsController)ShowDetail(){
+	//获取数据
 	goodsId,err:=this.GetInt("goodsId")
 	if err!=nil{
 		beego.Error("获取iD错误")
 		this.Redirect("/",302)
 		return
 	}
+	//处理数据
+	//查询操作
 	o:=orm.NewOrm()
+	//获取查询对象
 	var  goodsSku models.GoodsSKU
 	//查询
 	o.QueryTable("GoodsSKU").RelatedSel("Goods","GoodsType").Filter("Id",goodsId).One(&goodsSku)
-	//获取数据
+	//获取类型数据
 	var goodsTypes []models.GoodsType
 	o.QueryTable("GoodsType").All((&goodsTypes))
+	//获取新品数据
 	var newGoods []models.GoodsSKU
 	o.QueryTable("GoodsSKU").RelatedSel("GoodsType").Filter("GoodsType",goodsSku.GoodsType).OrderBy("Time").Limit(2,0).All(&newGoods)
 
@@ -91,31 +96,34 @@ func(this * GoodsController)ShowDetail(){
 	this.Data["goodsSku"]=goodsSku
 
 	//添加历史浏览记录
+	//在登录的状态下查看商品详情页面
 	userName:=this.GetSession("userName")
 
 	if userName!=nil{
-		//redis list
+		//redis中 list存数据
 		conn,err:=redis.Dial("tcp","192.168.109.138:6379")
 		if err!=nil{
 			beego.Error("redis链接失败",err)
 			return
 			}
 		defer  conn.Close()
+		//操作
 		conn.Do("lrem","history_"+userName.(string),0,goodsId)
 		conn.Do("lpush","history_"+userName.(string),goodsId)
 	}
 
-
+	//新品推荐
+	this.Data["userName"]=userName
 	this.TplName="detail.html"
 
 }
-//包装分页函数  始终为中间为准
+//包装分页函数  始终为中间为准               显示1 2 3 4 5
 func pageEditor(pageCount int,pageIndex int)[]int  {
 	var pages []int
 	//当页书小于5时，就直接显示完
 	if pageCount<5{
 		pages=make([]int,pageCount)
-		for i:=1;i<pageCount;i++{
+		for i:=1;i<=pageCount;i++{
 			pages[i-1]=i
 		}
 	//开始页码数小于3
@@ -125,7 +133,7 @@ func pageEditor(pageCount int,pageIndex int)[]int  {
 			pages[i-1]=i
 		}
 		//结尾接近最后两个时
-	}else if pageIndex>pageCount-2{
+	}else if pageIndex>=pageCount-2{
 		pages=make([]int,5)
 		for i:=1;i<=5;i++{
 			pages[i-1]=pageCount-5+i
@@ -133,7 +141,7 @@ func pageEditor(pageCount int,pageIndex int)[]int  {
 	}else{
 		//在中间时候的情况
 		pages=make([]int,5)
-		for i:=1;i<5;i++{
+		for i:=1;i<=5;i++{
 			pages[i-1]=pageIndex-3+i
 		}
 	}
@@ -148,36 +156,39 @@ func (this *GoodsController )ShowList(){
 		this.TplName="list.html"
 		return
 	}
+	//处理数据
+	//查询操作
 	o:=orm.NewOrm()
 	//定一个容器           商品详情
 	var  goods []models.GoodsSKU
-	//                                                                                    通过Id来对比    通过value来确定第一个怎么写
+	//查看商品                                                                            通过Id来对比    通过value来确定第一个怎么写
 	qs:=o.QueryTable("GoodsSKU").RelatedSel("GoodsType").Filter("GoodsType__Id",typeId)
     qs.All(&goods)
-	//获取总记录数
+	//获取总记录数   count 这一类总共有多少
 	count,err:=qs.Count()
 	if err!=nil{
 		beego.Error("计数错误")
 		return
 	}
 	//每页有多少条
-	pageSize:=4
+	pageSize:=5
 	//获取总页码数        总页书                 每页多少
 	pageCount:=math.Ceil(float64(count)/float64(pageSize))
-	//获取当前页码数
+	//获取当前页码数                   为当前页码数
 	pageIndex,err:=this.GetInt("pageIndex")
 	if err!=nil {
 		pageIndex=1
 	}
 	//上面的分装函数    pages 为显示的页书
 	pages:=pageEditor(int(pageCount),pageIndex)
-	//传递个后台数据 页码数
+	//传递个前段数据 页码数
 	this.Data["pages"]=pages
+
 	start:=(pageIndex-1)*pageSize
 	//排序
 	sort:=this.GetString("sort")
 	if sort==""{
-		//默认排序
+		//默认排序   开始 结束
 		qs.Limit(pageSize,start).All(&goods)
 		this.Data["sort"]=""
 	}else if sort=="price"{
@@ -205,13 +216,18 @@ func (this *GoodsController )ShowList(){
 	}
 	this.Data["preIndex"]=preIndex
 	this.Data["nextIndex"]=nextIndex
-//select * from user where goodsType__id=8
-
-	//传递页书
+	//select * from user where goodsType__id=8
+	//获取新品
+     var newGoods []models.GoodsSKU
+     o.QueryTable("GoodsSKU").RelatedSel("GoodsType").Filter("GoodsType__Id",typeId).OrderBy("Time").Limit(0,2).All(&newGoods)
+	 this.Data["newGoods"]=newGoods
+     //传递页书
 	this.Data["pageIndex"]=pageIndex
 	//获取类型ID
 	this.Data["typeId"]=typeId
-	this.Data["pages"]=pages
+	//包装函数为显示 1 2 3 4 5
+	userName:=this.GetSession("userName")
+	this.Data["userName"]=userName
 	this.Data["goods"]=goods
   	this.Layout="layout.html"
 	this.TplName="list.html"

@@ -108,7 +108,9 @@ func  (this *UserController)ActiveUser()  {
 }
 //展示登陆页面
 func (this *UserController)ShowLogin(){
-//获取登陆页面的username
+
+
+	//获取登陆页面的username
 	userName:=this.Ctx.GetCookie("userName")
 	if userName==""{
 		this.Data["userName"]=""
@@ -122,6 +124,8 @@ func (this *UserController)ShowLogin(){
 //退出登陆
 func(this *UserController)ShowLogout(){
 	this.DelSession("userName")
+	userName:=""
+	this.Data["userName"]=userName
 	this.Redirect("/",302)
 }
 //处理登陆页面

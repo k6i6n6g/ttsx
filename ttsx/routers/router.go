@@ -31,6 +31,8 @@ func init() {
     beego.Router("/detail",&controllers.GoodsController{},"get:ShowDetail")
    //商品用表
     beego.Router("/list",&controllers.GoodsController{},"get:ShowList")
+    //购物车
+    beego.Router("/goods/addcart",&controllers.CartController{},"post:HandleAddCart;get:ShowAddCart")
 
 }
 

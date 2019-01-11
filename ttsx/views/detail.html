@@ -12,34 +12,41 @@
 		<div class="header">
 			<div class="welcome fl">欢迎来到天天生鲜!</div>
 			<div class="fr">
-				<div class="login_info fl">
-					欢迎您：<em>张 山</em>
-				</div>
-				<div class="login_btn fl">
-					<a href="login.html">登录</a>
-					<span>|</span>
-					<a href="register.html">注册</a>
-				</div>
+            {{if compare .userName ""}}
+            <div class="login_btn fl">
+                <a href="login.html">登录</a>
+                <span>|</span>
+                <a href="register.html">注册</a>
+            </div>
+            {{else}}
+              <div class="login_btn fl">
+                  欢迎您：<em>{{.userName}}</em>
+                  <span>|</span>
+                  <a href="/logout">退出登录</a>
+              </div>
+             {{end}}
 				<div class="user_link fl">
 					<span>|</span>
 					<a href="user_center_info.html">用户中心</a>
 					<span>|</span>
-					<a href="cart.html">我的购物车</a>
+					<a href="/goods/addcart">我的购物车</a>
 					<span>|</span>
 					<a href="user_center_order.html">我的订单</a>
 				</div>
 			</div>
-		</div>		
+		</div>
 	</div>
 
 	<div class="search_bar clearfix">
 		<a href="index.html" class="logo fl"><img src="/static/images/logo.png"></a>
 		<div class="search_con fl">
-			<input type="text" class="input_text fl" name="" placeholder="搜索商品">
-			<input type="button" class="input_btn fr" name="" value="搜索">
+			<form action="/search" method="post">
+			      <input type="text" class="input_text fl" name="" placeholder="搜索商品">
+			      <input type="submit" class="input_btn fr" name="" value="搜索">
+            </form>
 		</div>
 		<div class="guest_cart fr">
-			<a href="cart.html" class="cart_name fl">我的购物车</a>
+			<a href="/goods/addcart" class="cart_name fl">我的购物车</a>
 			<div class="goods_count fl" id="show_count">1</div>
 		</div>
 	</div>
@@ -51,12 +58,12 @@
 				<span></span>			
 				<ul class="subnav">
 					{{range .goodsTypes}}
-					<li><a href="#" class="{{.Logo}}">{{.Name}}</a></li>
+					<li><a href="/list?typeId={{.Id}}" class="{{.Logo}}">{{.Name}}</a></li>
 					{{end}}
 				</ul>
 			</div>
 			<ul class="navlist fl">
-				<li><a href="">首页</a></li>
+				<li><a href="/">首页</a></li>
 				<li class="interval">|</li>
 				<li><a href="">手机生鲜</a></li>
 				<li class="interval">|</li>
@@ -74,7 +81,7 @@
 	</div>
 
 	<div class="goods_detail_con clearfix">
-		<div class="goods_detail_pic fl">{{range  .goodsImage}}<img src="http://192.168.109.138:8888/{{.goodsSku.Image}}">{{end}}</div>
+		<div class="goods_detail_pic fl"><img src="http://192.168.109.138:8888/{{.goodsSku.Image}}"></div>
 
 		<div class="goods_detail_list fr">
 			<h3>{{.goodsSku.Name}}</h3>
@@ -94,7 +101,7 @@
 			<div class="total">总价：<em>16.80元</em></div>
 			<div class="operate_btn">
 				<a href="javascript:;" class="buy_btn">立即购买</a>
-				<a href="javascript:;" class="add_cart" id="add_cart">加入购物车</a>				
+				<a href="javascript:;" class="add_cart" goodsId="{{.goodsSku.Id}}" id="add_cart">加入购物车</a>
 			</div>
 		</div>
 	</div>
@@ -139,15 +146,71 @@
 			<span>|</span>
 			<a href="#">招聘人才</a>
 			<span>|</span>
-			<a href="#">友情链接</a>		
+			<a href="#">友情链接</a>
 		</div>
 		<p>CopyRight © 2016 北京天天生鲜信息技术有限公司 All Rights Reserved</p>
 		<p>电话：010-****888    京ICP备*******8号</p>
 	</div>
 	<div class="add_jump"></div>
 
-	<script type="text/javascript" src="js/jquery-1.12.2.js"></script>
-	<script type="text/javascript">
+	 <script type="text/javascript" src="/static/js/jquery-1.12.4.min.js"></script>
+	 <script type="text/javascript">
+     //钱的总数
+     CountTotalPrice()
+     function CountTotalPrice() {
+        //找单价和数量标签   从页面获取的所有数据都是字符串
+        price=$(".show_pirze").children("em").text()
+        count=$(".num_show").val()
+        //类型转换
+        price=parseFloat(price)
+        count=parseInt(count)
+        //计算
+        totalPrice=price * count
+        //写回页面                                  小数两位
+        $(".total").children("em").text(totalPrice.toFixed(2)+"元")
+      }
+
+
+
+    //添加商品数量
+    $(".add").click(function () {
+        //获取原来的数量并加一
+        count=$(".num_show").val()
+        count=parseInt(count)+1
+        //在页面展示传来
+        $(".num_show").val(count)
+        CountTotalPrice()
+    })
+
+    //减少商品数量
+    $(".minus").click(function () {
+        //获取原来的数量并减一
+        count=$(".num_show").val()
+        count=parseInt(count)-1
+        if (count<1){
+            count=1
+        }
+        //在页面上展示
+        $(".num_show").val(count)
+        CountTotalPrice()
+    })
+	//手动输入商品数量
+	//blur  失去焦点的时候
+	$(".num_show").blur(function () {
+	    //获取原来的数量
+		count=$(".num_show").val()
+		//isnan代表这存入的时数字         代表着不会有空格
+		if (isNaN(count)||count<1||count.trim().length==0){
+		    count=1
+		}
+		$(".num_show").val(parseInt(count))
+
+        CountTotalPrice()
+    })
+
+
+
+
 		var $add_x = $('#add_cart').offset().top;
 		var $add_y = $('#add_cart').offset().left;
 
@@ -156,6 +219,24 @@
 
 		$(".add_jump").css({'left':$add_y+80,'top':$add_x+10,'display':'block'})
 		$('#add_cart').click(function(){
+
+		    //jquery的ajax发送请求
+			//购物车需要储存的数据
+			count=$(".num_show").val()
+			goodsId=$("#add_cart").attr("goodsId")
+
+			//拼接json格式字符串   传递的数据
+			param={"goodsId":goodsId,"count":count}
+			$.post("/goods/addcart",param,function (data) {
+			    /*举例说明错误的类型*/
+				if (data.errno==5){
+				    alert(data.errmsg)
+				}else{
+				    alert(data.errmsg)
+				}
+            })
+
+
 			$(".add_jump").stop().animate({
 				'left': $to_y+7,
 				'top': $to_x+7},
@@ -167,6 +248,6 @@
 			});
 		})
 	</script>
-	
+
 </body>
 </html>
